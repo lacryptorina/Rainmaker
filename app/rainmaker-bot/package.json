@@ -1,0 +1,15 @@
+{
+  "name": "rainmaker-bot",
+  "version": "1.0.0",
+  "description": "The Rainmaker Discord Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^13.6.0",
+    "@solana/web3.js": "^1.31.0",
+    "axios": "^0.26.1",
+    "dotenv": "^16.0.0"
+  }
+}
