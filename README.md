@@ -12,6 +12,8 @@ Application ID
 1333005913556127746
 Let me know exactly what I need to do to make this bot operational
 - redesign this program to function on php only
+- this is the oauth2 link, add it - https://discord.com/oauth2/authorize?client_id=1333005913556127746&permissions=1134139894784&response_type=code&redirect_uri=https%3A%2F%2Fdiscord.com%2Foauth2%2Fauthorize&integration_type=0&scope=identify+guilds+guilds.channels.read+messages.read+dm_channels.messages.read+activities.write+bot+connections+gateway.connect+dm_channels.messages.write+dm_channels.read+applications.entitlements+webhook.incoming+presences.write+guilds.join+gdm.join+activities.read+role_connections.write+applications.store.update+applications.builds.upload
+
 
 Check OUTPUT.md for the complete unaltered output.
 
