@@ -26,6 +26,9 @@ A Discord bot that integrates with Solana and Solscan's API for wallet verificat
    php index.php
    ```
 
+5. Invite the bot to your server using this OAuth2 link:
+   [Invite The Rainmaker Bot](https://discord.com/oauth2/authorize?client_id=1333005913556127746&permissions=1134139894784&response_type=code&redirect_uri=https%3A%2F%2Fdiscord.com%2Foauth2%2Fauthorize&integration_type=0&scope=identify+guilds+guilds.channels.read+messages.read+dm_channels.messages.read+activities.write+bot+connections+gateway.connect+dm_channels.messages.write+dm_channels.read+applications.entitlements+webhook.incoming+presences.write+guilds.join+gdm.join+activities.read+role_connections.write+applications.store.update+applications.builds.upload)
+
 ## Commands
 
 - `!verify <wallet_address>`: Verify ownership of a Solana wallet.
