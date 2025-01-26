@@ -1,0 +1,15 @@
+{
+    "name": "rainmaker-bot-php",
+    "description": "The Rainmaker Discord Bot in PHP",
+    "require": {
+        "php": "^8.0",
+        "discord-php/discord-php": "^7.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "vlucas/phpdotenv": "^5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "RainmakerBot\": "src/"
+        }
+    }
+}
