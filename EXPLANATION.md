@@ -1,15 +1,15 @@
 **Here you can check all the code explanation.**
 
-Let’s break down the **Rainmaker Discord Bot** code and project structure in detail. I’ll explain each file, its purpose, caveats, possible improvements, and how to run the bot. I’ll also highlight important aspects and potential pitfalls.
+Let’s break down the **Rainmaker Discord Bot** PHP version in detail. I’ll explain each file, its purpose, caveats, possible improvements, and how to run the bot. I’ll also highlight important aspects and potential pitfalls.
 
 ---
 
 ### **Project Structure**
 ```
-rainmaker-bot/
+rainmaker-bot-php/
 ├── .env
-├── index.js
-├── package.json
+├── index.php
+├── composer.json
 └── README.md
 ```
 
@@ -18,7 +18,7 @@ rainmaker-bot/
 ### **1. `.env` File**
 #### **Purpose**
 - This file stores sensitive environment variables like the **Discord bot token** and **Solscan API key**.
-- It uses the `dotenv` package to load these variables into the application.
+- It uses the `vlucas/phpdotenv` package to load these variables into the application.
 
 #### **Why It’s Important**
 - Sensitive credentials should never be hardcoded in the codebase. Using `.env` ensures security and makes it easy to manage environment-specific configurations.
@@ -32,67 +32,83 @@ rainmaker-bot/
 
 ---
 
-### **2. `index.js`**
+### **2. `index.php`**
 This is the main file that contains the bot’s logic. Let’s break it down block by block.
 
 #### **1. Dependencies and Initialization**
-```javascript
-require('dotenv').config();
-const { Client, Intents, MessageEmbed } = require('discord.js');
-const { Connection, PublicKey } = require('@solana/web3.js');
-const axios = require('axios');
+```php
+<?php
+
+require 'vendor/autoload.php';
+use Discord\Discord;
+use Discord\Parts\Channel\Message;
+use Discord\Parts\Embed\Embed;
+use GuzzleHttp\Client;
+
+// Load environment variables
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 ```
 - **Purpose**: Imports necessary libraries and initializes the bot.
 - **Why It’s Important**:
-  - `dotenv`: Loads environment variables from `.env`.
-  - `discord.js`: Provides tools to interact with the Discord API.
-  - `@solana/web3.js`: Enables interaction with the Solana blockchain.
-  - `axios`: Used to make HTTP requests to the Solscan API.
+  - `vlucas/phpdotenv`: Loads environment variables from `.env`.
+  - `discord-php/discord-php`: Provides tools to interact with the Discord API.
+  - `guzzlehttp/guzzle`: Used to make HTTP requests to the Solscan API.
 
 #### **2. Bot Initialization**
-```javascript
-const client = new Client({
-  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
-});
+```php
+// Initialize Discord bot
+$discord = new Discord([
+    'token' => $_ENV['DISCORD_BOT_TOKEN'],
+]);
 ```
-- **Purpose**: Creates a new Discord bot client with specific intents.
+- **Purpose**: Creates a new Discord bot client.
 - **Why It’s Important**:
-  - Intents define what events the bot can listen to. Here, it listens to guild (server) events and messages.
+  - This initializes the bot and sets it up to listen for events.
 
-#### **3. Solana Connection**
-```javascript
-const solanaConnection = new Connection('https://api.mainnet-beta.solana.com');
+#### **3. Solscan API Client**
+```php
+// Initialize HTTP client for Solscan API
+$httpClient = new Client([
+    'base_uri' => 'https://api.solscan.io',
+    'headers' => [
+        'Authorization' => 'Bearer ' . $_ENV['SOLSCAN_API_KEY'],
+    ],
+]);
 ```
-- **Purpose**: Establishes a connection to the Solana mainnet.
+- **Purpose**: Establishes a connection to the Solscan API.
 - **Why It’s Important**:
-  - This connection is used to interact with the Solana blockchain (e.g., verifying wallet ownership).
+  - This client is used to fetch contract data and transaction information from Solscan.
 
 #### **4. Bot Startup**
-```javascript
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
-});
+```php
+// Bot startup
+$discord->on('ready', function ($discord) {
+    echo "Bot is ready!", PHP_EOL;
 ```
 - **Purpose**: Logs a message when the bot successfully connects to Discord.
 - **Why It’s Important**:
   - Confirms that the bot is online and ready to handle commands.
 
 #### **5. Message Handling**
-```javascript
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return; // Ignore bot messages
+```php
+// Handle messages
+$discord->on('message', function ($message, $discord) use ($httpClient) {
+    if ($message->author->bot) return; // Ignore bot messages
 ```
 - **Purpose**: Listens for new messages and processes them.
 - **Why It’s Important**:
   - The bot ignores its own messages to avoid infinite loops.
 
 #### **6. Wallet Verification Command**
-```javascript
-if (message.content.startsWith('!verify')) {
-  const walletAddress = message.content.split(' ')[1];
-  if (!walletAddress) {
-    return message.reply('Please provide a wallet address. Usage: `!verify <wallet_address>`');
-  }
+```php
+// Wallet verification command
+if (strpos($message->content, '!verify') === 0) {
+    $walletAddress = explode(' ', $message->content)[1] ?? null;
+    if (!$walletAddress) {
+        $message->reply('Please provide a wallet address. Usage: `!verify <wallet_address>`');
+        return;
+    }
 ```
 - **Purpose**: Handles the `!verify` command to verify wallet ownership.
 - **Why It’s Important**:
@@ -101,9 +117,12 @@ if (message.content.startsWith('!verify')) {
   - The verification process is **simplified** and doesn’t actually verify signatures. This is a placeholder for actual implementation.
 
 #### **7. Contract Address/Ticker Detection**
-```javascript
-const contractRegex = /\$[A-Za-z0-9]+|([A-Za-z0-9]{32,44})/g;
-const matches = message.content.match(contractRegex);
+```php
+// Contract address/ticker detection
+$contractRegex = '/\$[A-Za-z0-9]+|([A-Za-z0-9]{32,44})/';
+if (preg_match_all($contractRegex, $message->content, $matches)) {
+    foreach ($matches[0] as $match) {
+        $contractAddress = str_starts_with($match, '$') ? substr($match, 1) : $match;
 ```
 - **Purpose**: Detects Solana contract addresses or tickers in messages.
 - **Why It’s Important**:
@@ -112,10 +131,21 @@ const matches = message.content.match(contractRegex);
   - The regex might not cover all edge cases (e.g., invalid addresses).
 
 #### **8. Fetching Contract Data**
-```javascript
-const response = await axios.get(`${SOLSCAN_API_URL}/account/${contractAddress}`, {
-  headers: { 'Authorization': `Bearer ${process.env.SOLSCAN_API_KEY}` },
-});
+```php
+try {
+    $response = $httpClient->get("/account/$contractAddress");
+    $contractData = json_decode($response->getBody(), true)['data'];
+
+    $embed = new Embed($discord);
+    $embed->setTitle("Contract: $contractAddress")
+          ->addField('Balance', ($contractData['lamports'] / 1e9) . ' SOL')
+          ->addField('Transactions', $contractData['transactionCount'])
+          ->setColor('#00FF00');
+
+    $message->reply('', false, [$embed]);
+} catch (Exception $e) {
+    $message->reply('❌ Failed to fetch contract data. Please check the address.');
+}
 ```
 - **Purpose**: Fetches contract data from the Solscan API.
 - **Why It’s Important**:
@@ -124,9 +154,14 @@ const response = await axios.get(`${SOLSCAN_API_URL}/account/${contractAddress}`
   - The API key is required, and the bot will fail if the key is invalid or missing.
 
 #### **9. RUG Command**
-```javascript
-if (message.content.toLowerCase() === 'rug') {
-  const shillerMessage = await message.channel.messages.fetch({ limit: 1, before: message.id });
+```php
+// RUG command
+if (strtolower($message->content) === 'rug') {
+    $shillerMessage = $message->channel->messages->fetch($message->id, 1)->first();
+    $shillerContent = $shillerMessage->content;
+
+    if (preg_match('/([A-Za-z0-9]{32,44})/', $shillerContent, $contractMatch)) {
+        $contractAddress = $contractMatch[0];
 ```
 - **Purpose**: Detects potential rug pulls by checking recent transactions for a contract.
 - **Why It’s Important**:
@@ -135,8 +170,9 @@ if (message.content.toLowerCase() === 'rug') {
   - The command relies on the previous message containing a contract address.
 
 #### **10. Bot Login**
-```javascript
-client.login(process.env.DISCORD_BOT_TOKEN);
+```php
+// Start the bot
+$discord->run();
 ```
 - **Purpose**: Logs the bot into Discord using the token from `.env`.
 - **Why It’s Important**:
@@ -144,20 +180,20 @@ client.login(process.env.DISCORD_BOT_TOKEN);
 
 ---
 
-### **3. `package.json`**
+### **3. `composer.json`**
 #### **Purpose**
 - Defines the project’s metadata and dependencies.
-- Includes a `start` script to run the bot.
+- Includes a `require` section to list all necessary packages.
 
 #### **Why It’s Important**
 - Ensures all required dependencies are installed.
-- Makes it easy to start the bot with `npm start`.
+- Makes it easy to start the bot with `php index.php`.
 
 #### **Caveats**
-- The `dependencies` section must match the versions used in the code. Outdated versions could cause issues.
+- The `require` section must match the versions used in the code. Outdated versions could cause issues.
 
 #### **Possible Improvements**
-- Add a `devDependencies` section for development tools (e.g., `nodemon` for auto-restarting the bot during development).
+- Add a `scripts` section for development tools (e.g., `composer run watch` for auto-restarting the bot during development).
 
 ---
 
@@ -179,13 +215,13 @@ client.login(process.env.DISCORD_BOT_TOKEN);
 ### **How to Run the Bot**
 1. **Install Dependencies**:
    ```bash
-   npm install
+   composer install
    ```
 2. **Set Up `.env`**:
    - Add your Discord bot token and Solscan API key to the `.env` file.
 3. **Start the Bot**:
    ```bash
-   npm start
+   php index.php
    ```
 4. **Invite the Bot to Your Server**:
    - Use the OAuth2 URL from the Discord Developer Portal to add the bot to your server.
@@ -200,11 +236,11 @@ client.login(process.env.DISCORD_BOT_TOKEN);
 3. **Security**:
    - Ensure the `.env` file is not exposed. Use environment variables in production.
 4. **Scalability**:
-   - If the bot grows, consider splitting the code into multiple files (e.g., `commands.js`, `utils.js`).
+   - If the bot grows, consider splitting the code into multiple files (e.g., `commands.php`, `utils.php`).
 5. **Rate Limiting**:
    - Add rate limiting to prevent abuse of the bot’s commands.
 
 ---
 
 ### **Conclusion**
-This bot is a great starting point for integrating Solana and Discord. It provides useful features like wallet verification, contract data fetching, and rug pull detection. However, it has some limitations and areas for improvement, particularly in verification logic and error handling. With the provided setup instructions, you should be able to run the bot effortlessly. Let me know if you need further assistance! 🚀
+This PHP version of the Rainmaker Discord Bot provides the same functionality as the original Node.js version. It includes all necessary files, configurations, and instructions to run the bot effortlessly. Let me know if you need further assistance! 🚀.
