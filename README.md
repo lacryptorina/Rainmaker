@@ -11,6 +11,7 @@ Create the code for a Discord bot called "The Rainmaker" that
 Application ID
 1333005913556127746
 Let me know exactly what I need to do to make this bot operational
+- redesign this program to function on php only
 
 Check OUTPUT.md for the complete unaltered output.
 
